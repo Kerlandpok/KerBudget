@@ -26,3 +26,11 @@
 .income-group{border-color:#b9dfc6}
 .bills-group{border-color:#ead1bd}
 .other-group{border-color:#d6e0e5}
+
+.status-group{margin:0;background:#fff}
+.status-head{display:flex;justify-content:space-between;align-items:center;padding:9px 14px;font-size:.82rem;font-weight:800;text-transform:uppercase;letter-spacing:.03em}
+.status-head strong{min-width:25px;text-align:center;border-radius:999px;padding:2px 7px;background:#fff}
+.pending-group .status-head{background:#fff4df;color:#8a5a00}
+.pointed-group .status-head{background:#eaf6ee;color:#27623b}
+.status-group>.list{margin:0;border-radius:0}
+.status-group+.status-group{border-top:4px solid #f1f4f6}

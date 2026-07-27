@@ -15,22 +15,38 @@ function home(){let t=totals(month),p=planned(month),b=balance(month,true),delta
 function txList(list){return `<div class="list">${list.length?list.map(t=>`<div class="row" data-edit="${esc(t.id)}"><div><div class="title">${t.pointed?'✓ ':''}${esc(t.description||t.subcategory||'Mouvement')}</div><div class="sub">${t.day?String(t.day).padStart(2,'0')+'/':''}${String(t.month+1).padStart(2,'0')}/2026 · ${esc(t.category)}${t.subcategory?' › '+esc(t.subcategory):''}</div></div><div class="amount ${t.category.trim()==='Revenus'?'positive':'negative'}">${t.category.trim()==='Revenus'?'+':'−'}${euro(Math.abs(t.amount))}</div></div>`).join(''):'<div class="empty">Aucun mouvement.</div>'}</div>`}
 function txGroups(list){
   const billCats=new Set(['Habitation','Télécommunications','Assurances','Banque','Impots']);
+  const isWorks=t=>{
+    const s=((t.category||'')+' '+(t.subcategory||'')+' '+(t.description||'')).toLowerCase();
+    return s.includes('aménagement')||s.includes('amenagement')||s.includes('travaux');
+  };
   const revenus=list.filter(t=>t.category.trim()==='Revenus');
-  const factures=list.filter(t=>t.category.trim()!=='Revenus'&&billCats.has(t.category.trim()));
-  const autres=list.filter(t=>t.category.trim()!=='Revenus'&&!billCats.has(t.category.trim()));
+  const factures=list.filter(t=>t.category.trim()!=='Revenus'&&billCats.has(t.category.trim())&&!isWorks(t));
+  const autres=list.filter(t=>t.category.trim()!=='Revenus'&&(!billCats.has(t.category.trim())||isWorks(t)));
   const total=a=>a.reduce((s,t)=>s+(Number(t.amount)||0),0);
+  const statusBlock=(items,label)=>{
+    const pointed=items.filter(t=>t.pointed), pending=items.filter(t=>!t.pointed);
+    return `
+      <div class="status-group pending-group">
+        <div class="status-head"><span>À pointer</span><strong>${pending.length}</strong></div>
+        ${txList(pending)}
+      </div>
+      <div class="status-group pointed-group">
+        <div class="status-head"><span>Pointés</span><strong>${pointed.length}</strong></div>
+        ${txList(pointed)}
+      </div>`;
+  };
   return `
     <section class="txgroup income-group">
       <div class="txgroup-head"><div><span class="txgroup-icon">↗</span><h3>Revenus</h3><small>${revenus.length} mouvement${revenus.length>1?'s':''}</small></div><strong class="positive">+${euro(total(revenus))}</strong></div>
-      ${txList(revenus)}
+      ${statusBlock(revenus,'Revenus')}
     </section>
     <section class="txgroup bills-group">
       <div class="txgroup-head"><div><span class="txgroup-icon">▣</span><h3>Factures</h3><small>${factures.length} mouvement${factures.length>1?'s':''}</small></div><strong class="negative">−${euro(total(factures))}</strong></div>
-      ${txList(factures)}
+      ${statusBlock(factures,'Factures')}
     </section>
     <section class="txgroup other-group">
       <div class="txgroup-head"><div><span class="txgroup-icon">•••</span><h3>Autres dépenses</h3><small>${autres.length} mouvement${autres.length>1?'s':''}</small></div><strong class="negative">−${euro(total(autres))}</strong></div>
-      ${txList(autres)}
+      ${statusBlock(autres,'Autres dépenses')}
     </section>`;
 }
 function transactions(){let list=mtx(month).slice().sort((a,b)=>(b.day||0)-(a.day||0));return layout(`${monthbar()}<div class="section-title"><h2>Mouvements • ${state.months[month].month}</h2><button class="btn" data-add>+ Ajouter</button></div><input class="search" id="search" placeholder="Rechercher dans les mouvements…"> <div id="txarea" style="margin-top:12px">${txGroups(list)}</div>`)}
