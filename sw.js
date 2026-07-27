@@ -1,4 +1,4 @@
-const CACHE='kerbudget-v6-20260727';
+const CACHE='kerbudget-v7-20260727';
 const ASSETS=['./','./index.html','./styles.css','./app.js','./data.js','./excel-extra.js','./manifest.json','./icon.svg'];
 
 self.addEventListener('install', event=>{
