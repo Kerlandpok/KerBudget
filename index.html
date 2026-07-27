@@ -4,16 +4,4 @@
 <nav class="bottom"><button data-view="home" class="active">⌂<span>Accueil</span></button><button data-view="transactions">↕<span>Mouvements</span></button><button data-view="annual">▥<span>Annuel</span></button><button data-view="savings">◆<span>Épargne</span></button><button data-view="more">•••<span>Plus</span></button></nav>
 <div id="modal" class="modal" hidden></div><script src="data.js"></script><script src="excel-extra.js"></script>
 <script src="app.js"></script>
-<script>
-document.addEventListener("DOMContentLoaded",function(){
- const X=window.KERBUDGET_EXCEL_EXTRA||{}, host=document.querySelector("main")||document.body;
- function esc(s){return String(s??"").replace(/[&<>"]/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[m]));}
- function fmt(v){return typeof v==="number"?new Intl.NumberFormat("fr-FR",{maximumFractionDigits:2}).format(v):esc(v);}
- function show(k,label){let p=document.getElementById("excelPanel");if(!p){p=document.createElement("section");p.id="excelPanel";host.appendChild(p);}
-  let rows=X[k]||[];p.innerHTML="<h2>"+label+"</h2><div class='excelCard'><div class='excelScroll'><table>"+rows.map((r,i)=>"<tr>"+r.map(v=>"<"+(i<2?"th":"td")+">"+fmt(v)+"</"+(i<2?"th":"td")+">").join("")+"</tr>").join("")+"</table></div></div>";p.scrollIntoView({behavior:"smooth"});}
- let nav=document.createElement("div");nav.className="excelNav";
- [["Epargne","Épargne"],["Photovoltaique","Photovoltaïque"],["Annuel","Annuel"]].forEach(x=>{let b=document.createElement("button");b.textContent=x[1];b.onclick=()=>show(x[0],x[1]);nav.appendChild(b);});
- host.appendChild(nav);
-});
-</script>
 </body></html>

@@ -16,7 +16,39 @@ function txList(list){return `<div class="list">${list.length?list.map(t=>`<div 
 function transactions(){let list=mtx(month).slice().sort((a,b)=>(b.day||0)-(a.day||0));return layout(`${monthbar()}<div class="section-title"><h2>Mouvements • ${state.months[month].month}</h2><button class="btn" data-add>+ Ajouter</button></div><input class="search" id="search" placeholder="Rechercher un mouvement…"> <div id="txarea" style="margin-top:12px">${txList(list)}</div>`)}
 function budget(){let ls=state.months[month].budgetLines, groups={};for(const l of ls)(groups[l.type==='income'?'Revenus':l.category]??=[]).push(l);return layout(`${monthbar()}<div class="section-title"><h2>Budget prévu • ${state.months[month].month}</h2><button class="btn secondary" data-go="home">Terminé</button></div><div class="list">${Object.entries(groups).map(([g,ls])=>`<div class="cathead">${esc(g)}</div>${ls.map((l,idx)=>{let gi=state.months[month].budgetLines.indexOf(l);let actual=mtx(month).filter(t=>l.type==='income'?t.category.trim()==='Revenus':t.category.trim()===g.trim()).reduce((a,b)=>a+b.amount,0);return `<div class="budgetrow"><div><b>${esc(l.label)}</b><small>${l.type==='income'?'Revenu':'Dépense'}</small></div><input type="number" step="0.01" value="${l.planned}" data-budget="${gi}"><div class="actual">${euro(actual)}</div></div>`}).join('')}`).join('')}</div><p class="muted">Colonne centrale : montant anticipé modifiable. À droite : réel actuel de la catégorie.</p>`)}
 function annual(){let arr=state.months.map((m,i)=>{let t=totals(i),p=planned(i);return{m:m.month.slice(0,3),inc:t.income,exp:t.expense,planned:p.expense,bal:t.income-t.expense}});let inc=arr.reduce((a,b)=>a+b.inc,0),exp=arr.reduce((a,b)=>a+b.exp,0),bud=arr.reduce((a,b)=>a+b.planned,0),mx=Math.max(...arr.map(x=>Math.abs(x.bal)),1);return layout(`<div class="section-title"><h2>Synthèse annuelle 2026</h2></div><div class="kpi3"><div class="card"><div class="cap">REVENUS</div><div class="val positive">${euro(inc)}</div></div><div class="card"><div class="cap">DÉPENSES</div><div class="val negative">${euro(exp)}</div></div><div class="card"><div class="cap">SOLDE</div><div class="val ${inc-exp>=0?'positive':'negative'}">${euro(inc-exp)}</div></div></div><div class="card" style="margin-top:12px"><div class="cap">SOLDE MENSUEL</div><div class="chart">${arr.map(x=>`<div class="barcol"><div class="bar ${x.bal<0?'neg':''}" style="height:${Math.max(3,Math.abs(x.bal)/mx*130)}px"></div><span>${x.m}</span></div>`).join('')}</div></div><div class="section-title"><h2>Mois par mois</h2></div><div class="list">${arr.map((x,i)=>`<div class="row" data-monthgo="${i}"><div><div class="title">${state.months[i].month}</div><div class="sub">Budget dépenses ${euro(x.planned)} · Réel ${euro(x.exp)}</div></div><div class="amount ${x.bal>=0?'positive':'negative'}">${euro(x.bal)}</div></div>`).join('')}</div>`)}
-function savings(){let monthly=state.months.map((m,i)=>{let v=mtx(i).filter(t=>t.subcategory==='Livret A'||/livret a/i.test(t.description)).reduce((a,b)=>a+(t.category.trim()==='Revenus'?-b.amount:b.amount),0);return v});let total=state.savings.opening+monthly.reduce((a,b)=>a+b,0);return layout(`<div class="hero"><div class="label">Épargne • Livret A</div><div class="big">${euro(total)}</div><div class="hero-mini">Solde de départ<b>${euro(state.savings.opening)}</b></div></div><div class="section-title"><h2>Mouvements d'épargne</h2></div><div class="list">${state.months.map((m,i)=>`<div class="row"><div class="title">${m.month}</div><div class="amount ${monthly[i]>=0?'positive':'negative'}">${euro(monthly[i])}</div></div>`).join('')}</div>`)}
+function savings(){
+  const rows=(window.KERBUDGET_EXCEL_EXTRA?.Epargne||[]);
+  const data=rows.slice(4).filter(r=>r && r[1]);
+  const opening=data.find(r=>String(r[1]).toLowerCase().includes('solde précédent'));
+  const months=data.filter(r=>/janvier|février|fevrier|mars|avril|mai|juin|juillet|aout|août|septembre|octobre|novembre|décembre|decembre/i.test(String(r[1])));
+  const total=data.find(r=>String(r[1]).toLowerCase()==='total');
+  const pointed=total ? Number(total[5]||0) : 0;
+  const real=total ? Number(total[3]||0) : 0;
+  const planned=total ? Number(total[2]||0) : 0;
+  return layout(`
+    <section class="hero">
+      <div class="label">Épargne • Livret A</div>
+      <div class="big">${euro(pointed)}</div>
+      <div class="hero-grid">
+        <div class="hero-mini">Solde précédent<b>${euro(opening?.[5] ?? opening?.[3] ?? 0)}</b></div>
+        <div class="hero-mini">Objectif annuel<b>${euro(planned)}</b></div>
+        <div class="hero-mini">Réel annuel<b>${euro(real)}</b></div>
+        <div class="hero-mini">Pointé<b>${euro(pointed)}</b></div>
+      </div>
+    </section>
+    <div class="section-title"><h2>Épargne mois par mois</h2></div>
+    <div class="list">
+      ${months.map(r=>`
+        <div class="row">
+          <div>
+            <div class="title">${esc(r[1])}</div>
+            <div class="sub">Prévu ${euro(r[2])} · Réel ${euro(r[3])} · Écart ${euro(r[4])}</div>
+          </div>
+          <div class="amount ${Number(r[5]||0)>=0?'positive':'negative'}">${euro(r[5])}</div>
+        </div>`).join('')}
+    </div>
+  `)
+}
 function solar(){let paid=state.transactions.filter(t=>/sygma/i.test(t.subcategory)||/sygma/i.test(t.description)).filter(t=>t.pointed).reduce((a,b)=>a+b.amount,0),start=13819.47,remain=Math.max(0,start-paid);return layout(`<div class="hero"><div class="label">Prêt photovoltaïque</div><div class="big">${euro(remain)}</div><div class="hero-grid"><div class="hero-mini">Montant initial<b>${euro(start)}</b></div><div class="hero-mini">Payé / pointé<b>${euro(paid)}</b></div></div></div><div class="section-title"><h2>Échéancier</h2></div><div class="list">${state.solar.map(x=>`<div class="row"><div><div class="title">Échéance ${x.n} · ${esc(x.month)}</div><div class="sub">Montant prévu</div></div><div class="amount">${euro(x.scheduled)}</div></div>`).join('')}</div>`)}
 function more(){return layout(`<div class="section-title"><h2>Outils</h2></div><div class="list"><div class="row" data-go="solar"><div><div class="title">☀ Prêt photovoltaïque</div><div class="sub">Échéancier et reste dû</div></div><b>›</b></div><div class="row" data-export><div><div class="title">⇩ Sauvegarder les données</div><div class="sub">Export JSON de l'application</div></div><b>›</b></div><div class="row" data-import><div><div class="title">⇧ Restaurer une sauvegarde</div><div class="sub">Importer un fichier JSON</div></div><b>›</b></div><div class="row" data-reset><div><div class="title negative">Réinitialiser depuis Excel</div><div class="sub">Remet les données intégrées à l'origine</div></div><b>›</b></div></div><input id="fileInput" type="file" accept="application/json" hidden><p class="muted">Les données sont enregistrées automatiquement sur cet appareil, même hors connexion.</p>`)}
 function render(){let html=view==='home'?home():view==='transactions'?transactions():view==='annual'?annual():view==='savings'?savings():view==='budget'?budget():view==='solar'?solar():more();document.querySelector('#app').innerHTML=html;document.querySelectorAll('.bottom button').forEach(b=>b.classList.toggle('active',b.dataset.view===view));bind()}
